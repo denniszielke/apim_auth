@@ -185,7 +185,7 @@
                                 "Name": "FUNCTION_URL"
                             },
                             {
-                                "Value": "[concat('https://', variables('sites_web_backend_name'),'.azurewebsites.net')]",
+                                "Value": "[concat('https://', variables('apimgmtservice_name'),'.azure-api.net/calculator')]",
                                 "Name": "ENDPOINT"
                             }
                         ]
@@ -408,12 +408,11 @@
                     "type": "apis",
                     "name": "Calculator API",
                     "dependsOn": [
-                        "[concat('Microsoft.ApiManagement/service/', variables('apimgmtservice_name'))]",
-                        "[resourceId('Microsoft.Web/Sites', variables('sites_web_backend_name'))]"
+                        "[concat('Microsoft.ApiManagement/service/', variables('apimgmtservice_name'))]"
                     ],
                     "properties": {
                         "contentFormat": "SwaggerLinkJson",
-                        "contentValue": "[concat(variables('sites_web_backend_name'),'.azurewebsites.net', '/api/swagger')]",
+                        "contentValue": "[concat('https://', variables('sites_web_backend_name'),'.azurewebsites.net', '/api/swagger')]",
                         "path": "calculator"
                     }
                 }
