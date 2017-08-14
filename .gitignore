@@ -4,4 +4,4 @@ web/package-lock.json
 
 !.gitkeep
 tmp
-template.json
+private.json
