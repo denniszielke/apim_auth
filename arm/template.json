@@ -9,13 +9,6 @@
                 "description": "Short name of the deployment to ensure no name collisions"
             }
         },
-        "function_repo_url": {
-            "type": "string",
-            "defaultValue": "https://github.com/denniszielke/socialtweetscoringfunctions.git",
-            "metadata": {
-                "description": "The URL for the GitHub repository that contains the project to deploy."
-            }
-        },
         "web_backend_repo_url": {
             "type": "string",
             "defaultValue": "https://github.com/denniszielke/calc_backend.git",
@@ -36,16 +29,13 @@
             "metadata": {
                 "description": "Enter mail"
             }
-        }        
+        }
     },
     "variables": {
         "components_insights_name": "[concat(parameters('deployment_name'), 'insights')]",
-        "storageAccounts_func_name": "[concat(parameters('deployment_name'), 'func')]",
-        "serverfarms_funcplan_name": "[concat(parameters('deployment_name'), 'funcplan')]",
         "serverfarms_webplan_name": "[concat(parameters('deployment_name'), 'webplan')]",
         "sites_web_backend_name": "[concat(parameters('deployment_name'), 'webbackend')]",
         "sites_web_frontend_name": "[concat(parameters('deployment_name'), 'webfrontend')]",
-        "sites_func_name": "[concat(parameters('deployment_name'), 'funcapi')]",
         "apimgmtservice_name": "[concat(parameters('deployment_name'), 'apiservice')]"
     },
     "resources": [
@@ -63,43 +53,6 @@
             },
             "dependsOn": []
         },        
-        {
-            "comments": "Azure functions",
-            "type": "Microsoft.Storage/storageAccounts",
-            "sku": {
-                "name": "Standard_LRS",
-                "tier": "Standard"
-            },
-            "kind": "Storage",
-            "name": "[variables('storageAccounts_func_name')]",
-            "apiVersion": "2016-01-01",
-            "location": "[resourceGroup().location]",
-            "tags": {},
-            "scale": null,
-            "properties": {},
-            "dependsOn": []
-        },
-        {
-            "comments": "Server Plan for functions",
-            "type": "Microsoft.Web/serverfarms",
-            "sku": {
-                "name": "Y1",
-                "tier": "Dynamic",
-                "size": "Y1",
-                "family": "Y",
-                "capacity": 0
-            },
-            "kind": "functionapp",
-            "name": "[variables('serverfarms_funcplan_name')]",
-            "apiVersion": "2015-08-01",
-            "location": "[resourceGroup().location]",
-            "scale": null,
-            "properties": {
-                "name": "[variables('serverfarms_funcplan_name')]",
-                "numberOfWorkers": 0
-            },
-            "dependsOn": []
-        },
         {
             "comments": "Serverplan for WebApps",
             "type": "Microsoft.Web/serverfarms",
@@ -181,17 +134,29 @@
                                 "Name": "WEBSITE_NODE_DEFAULT_VERSION"
                             },
                             {
-                                "Value": "[concat('https://', variables('sites_func_name'),'.azurewebsites.net/')]",
-                                "Name": "FUNCTION_URL"
-                            },
-                            {
                                 "Value": "[concat('https://', variables('apimgmtservice_name'),'.azure-api.net/calculator')]",
                                 "Name": "ENDPOINT"
                             },
                             {
                                 "Value": "",
                                 "Name": "SUBSCRIPTIONKEY"
-                            }                            
+                            },
+                            {
+                                "Value": "",
+                                "Name": "CLIENTID"
+                            },
+                            {
+                                "Value": "",
+                                "Name": "RESOURCE"
+                            },
+                            {
+                                "Value": "",
+                                "Name": "CLIENTSECRET"
+                            },
+                            {
+                                "Value": "",
+                                "Name": "TENANT"
+                            }
                         ]
                     }
                 },
@@ -271,10 +236,6 @@
                             {
                                 "Value": "6.9.1",
                                 "Name": "WEBSITE_NODE_DEFAULT_VERSION"
-                            },
-                            {
-                                "Value": "[concat('https://', variables('sites_func_name'),'.azurewebsites.net/')]",
-                                "Name": "FUNCTION_URL"
                             }
                         ]
                     }
@@ -295,101 +256,6 @@
             ],
             "dependsOn": [
                 "[resourceId('Microsoft.Web/serverfarms', variables('serverfarms_webplan_name'))]"
-            ]
-        },
-        {
-            "comments": "Function App",
-            "type": "Microsoft.Web/sites",
-            "kind": "functionapp",
-            "name": "[variables('sites_func_name')]",
-            "apiVersion": "2015-08-01",
-            "location": "[resourceGroup().location]",
-            "scale": null,
-            "properties": {
-                "name": "[variables('sites_func_name')]",
-                "hostNames": [
-                    "[concat(variables('sites_func_name'),'.azurewebsites.net')]"
-                ],
-                "enabledHostNames": [
-                    "[concat(variables('sites_func_name'),'.azurewebsites.net')]",
-                    "[concat(variables('sites_func_name'),'.scm.azurewebsites.net')]"
-                ],
-                "hostNameSslStates": [
-                    {
-                        "name": "[concat(variables('sites_func_name'),'.azurewebsites.net')]",
-                        "sslState": 0,
-                        "thumbprint": null,
-                        "ipBasedSslState": 0
-                    },
-                    {
-                        "name": "[concat(variables('sites_func_name'),'.scm.azurewebsites.net')]",
-                        "sslState": 0,
-                        "thumbprint": null,
-                        "ipBasedSslState": 0
-                    }
-                ],
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('serverfarms_funcplan_name'))]"
-            },
-            "resources": [
-                {
-                    "apiVersion": "2014-04-01",
-                    "type": "config",
-                    "name": "web",
-                    "dependsOn": [
-                        "[resourceId('microsoft.web/sites/', variables('sites_func_name'))]",
-                        "[resourceId('microsoft.insights/components', variables('components_insights_name'))]",
-                        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_func_name'))]"
-                    ],
-                    "properties": {
-                        "appSettings": [
-                            {
-                                "Value": "[reference(concat('microsoft.insights/components/', variables('components_insights_name'))).InstrumentationKey]",
-                                "Name": "INSTRUMENTATIONKEY"
-                            },
-                            {
-                                "Value": "[reference(concat('microsoft.insights/components/', variables('components_insights_name'))).InstrumentationKey]",
-                                "Name": "APPINSIGHTS_INSTRUMENTATIONKEY"
-                            },
-                            {
-                                "Value": "latest",
-                                "Name": "FUNCTIONS_EXTENSION_VERSION"
-                            },
-                            {
-                                "Value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccounts_func_name'), ';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_func_name')), '2015-05-01-preview').key1,';')]",
-                                "Name": "AzureWebJobsStorage"
-                            },
-                            {
-                                "Value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccounts_func_name'), ';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_func_name')), '2015-05-01-preview').key1,';')]",
-                                "Name": "AzureWebJobsDashboard"
-                            },
-                            {
-                                "Value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccounts_func_name'), ';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_func_name')), '2015-05-01-preview').key1,';')]",
-                                "Name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING"
-                            },
-                            {
-                                "Value": "[toLower(variables('storageAccounts_func_name'))]",
-                                "Name": "WEBSITE_CONTENTSHARE"
-                            }
-                        ]
-                    }
-                },
-                {
-                "apiVersion": "2015-08-01",
-                "name": "web",
-                 "type": "sourcecontrols",
-                 "dependsOn": [
-                        "[resourceId('Microsoft.Web/Sites', variables('sites_func_name'))]",
-                        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_func_name'))]"
-                ],
-                "properties": {
-                    "RepoUrl": "[parameters('function_repo_url')]",
-                    "branch": "master",
-                    "IsManualIntegration": true
-                    }
-                }
-            ],
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/serverfarms', variables('serverfarms_funcplan_name'))]"
             ]
         },
         {
@@ -435,10 +301,6 @@
         "FRONTEND_URL" : {
             "type" : "string",
             "value": "[concat('https://', variables('sites_web_frontend_name'),'.azurewebsites.net/')]"
-        },
-        "FUNCTION_URL" : {
-            "type" : "string",
-            "value": "[concat('https://', variables('sites_func_name'),'.azurewebsites.net/')]"
         },
         "APIMGMT_URL" : {
             "type" : "string",
