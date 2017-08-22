@@ -15,6 +15,10 @@ Todo: Use KeyVault for secrets instead of environment variables.
 At the end you should end up with having the following resources provisioned:
 ![](/img/2017-08-22-15-50-58.png)
 
+The code for the backend and frontend applications can be found here:
+https://github.com/denniszielke/calc_backend
+https://github.com/denniszielke/calc_frontend
+
 ## Preparation in Azure AD
 
 You have to choose a deployment name for this scenario. This will ensure that you can deploy multiple times without running into naming collisions. This will also allow you to create the reply urls in advance. The recommendation would be to pick a two-letter- two-diggit combination like "dz11" for a deployname name.
