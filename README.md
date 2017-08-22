@@ -23,10 +23,12 @@ https://github.com/denniszielke/calc_frontend
 
 You have to choose a deployment name for this scenario. This will ensure that you can deploy multiple times without running into naming collisions. This will also allow you to create the reply urls in advance. The recommendation would be to pick a two-letter- two-diggit combination like "dz11" for a deployname name.
 In this case the frontend and backend applications will be generated under the following url:
+``` 
 https://{deployment_name}webbackend.azurewebsites.net (backend)
 https://{deployment_name}webfrontend.azurewebsites.net (frontend)
 https://{deployment_name}.portal.azure-api.net (developer portal)
 https://{deployment_name}apiservice.api.net (api gateway)
+```
 
 Make sure you have Azure AD for your organisation set up. Either by creating a new one or using an existing one (requires for you to have permissions in it).
 
