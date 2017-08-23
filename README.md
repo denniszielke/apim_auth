@@ -119,3 +119,7 @@ Both the frontend and the backend send a lot of telemetry and metrics to applica
 Check it out.
 
 ![](/img/2017-08-22-18-49-59.png)
+
+### Test call using curl
+
+curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d 'client_id={caller application id}&resource={target app uri id}&client_secret={caller application secret}&grant_type=client_credentials' 'https://login.microsoftonline.com/{tenant id}/oauth2/token'
