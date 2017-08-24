@@ -3,6 +3,10 @@ Documentation taken from https://docs.microsoft.com/en-us/azure/api-management/a
 
 The scenario is about protecting a backend api with azure active directory authentication and requiring aad auth header in each request by the frontend application through the azure api management to the backend.
 
+This has two different authentication schemes:
+1. Blue internal authentication scheme for applications and users that are part of the same corp (and have identities in the same Azure Active Directory). For these requests we can create Bearer tokens that can be validated and passed trought API Management gateway and our Backend API. 
+2. Green external authentication scheme for applications and users that are not part of our corp. For these requests we are validating their own JWT in the API Management Gateway and request and issue a new corp Bearer tokens and add them to the original request so that our backend can authenticate the call.
+
 ![](/img/arch.png)
 
 To deploy this solution click on the button and make sure to do the preparation steps in advance.
@@ -120,6 +124,77 @@ Check it out.
 
 ![](/img/2017-08-22-18-49-59.png)
 
-### Test call using curl
+### Test calls using curl
 
+Get a JWT for calling the backend from Azure AD
+```
 curl -X POST -H "Content-Type: application/x-www-form-urlencoded" -d 'client_id={caller application id}&resource={target app uri id}&client_secret={caller application secret}&grant_type=client_credentials' 'https://login.microsoftonline.com/{tenant id}/oauth2/token'
+```
+
+Post that token either to the backend or the APIM gateway
+
+```
+curl -X GET -H "Ocp-Apim-Subscription-Key: {herebesubscriptionkey}" -H "Authorization: Bearer {here be access_token}" 'https://{here be api url}'
+```
+
+## External authentication
+
+For validation of external tokens see the official apim documentation:
+https://docs.microsoft.com/de-de/azure/api-management/api-management-access-restriction-policies#ValidateJWT 
+
+Now assume we have validated the external token and we want to attach our own corp issued token to the original request.
+We first have to set a couple of variables to be stored as named properties inside the api management. You can find the documentation for this here: https://docs.microsoft.com/en-us/azure/api-management/api-management-howto-properties 
+
+![](/img/2017-08-24-08-44-58.png)
+
+We also improve the performance of this by storing authentication token inside the cache. You can optimize this by having different cache keys for different subscriptions keys.
+Now that these values are available we can reference them inside our external product policy:
+
+``` 
+<policies>
+    <inbound>
+        <cache-lookup-value key="calc_be" default-value="" variable-name="calc_be_token"/>
+        <choose>
+            <when condition="@(string.IsNullOrEmpty((string) context.Variables["calc_be_token"]))">
+                <!--          Extract Token from Authorization header parameter and load variables         -->
+                <set-variable name="token" value="@(context.Request.Headers.GetValueOrDefault("Authorization","scheme param").Split(' ').Last())"/>
+                <set-variable name="tenant-id" value="{{tenant-id}}"/>
+                <set-variable name="impersonation-app-id" value="{{impersonation-app-id}}"/>
+                <set-variable name="impersonation-app-secret" value="{{impersonation-app-secret}}"/>
+                <set-variable name="resource" value="{{resource}}"/>
+                <!--          Send request to receive token          -->
+                <send-request mode="new" response-variable-name="tokenstate" timeout="20" ignore-error="true">
+                    <set-url>@("https://login.microsoftonline.com/" + (string)context.Variables["tenant-id"] + "/oauth2/token")</set-url>
+                    <set-method>POST</set-method>
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/x-www-form-urlencoded</value>
+                    </set-header>
+                    <set-body>@("client_id=" + (string)context.Variables["caller-id"] + "&resource=" + (string)context.Variables["dcscalcbackend-idurl"] + "&client_secret=" + (string)context.Variables["caller-secret"]+ "&grant_type=client_credentials")
+    </set-body>
+                </send-request>
+                <!--          Store the access token to a variable          -->
+                <set-variable name="access_token" value="@(((IResponse)context.Variables["tokenstate"]).Body.As<JObject>()["access_token"].ToString())"/>
+                    <!--        Get Token and set in request and cache      -->
+                    <set-header name="Authorization" exists-action="override">
+                        <value>@("Bearer " + (string)context.Variables["access_token"])</value>
+                    </set-header>
+                    <cache-store-value key="calc_be" value="@((string)context.Variables["access_token"])" duration="30"/>
+                </when>
+                <otherwise>
+                    <!--       If there is already an access token in the cache we use that one      -->
+                    <set-header name="Authorization" exists-action="override">
+                        <value>@("Bearer " + (string)context.Variables["calc_be_token"] )</value>
+                    </set-header>
+                </otherwise>
+            </choose>
+            <base/>
+        </inbound>
+        <backend>
+            <base/>
+        </backend>
+        <outbound>
+            <base/>
+        </outbound>
+    </policies>
+
+```
